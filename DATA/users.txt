@@ -3,3 +3,4 @@ tanya,$2b$12$WXdXoMzpXstaNShhhgFvhOR30mfbrv4sn4h86ueDPCfljNlp4DcLS
 dave,$2b$12$AIXdjDakSkrhqqt9XJxAse6gYdEFLULNcyo.8JYcldQnK.uGYLX5S
 ropa23,$2b$12$3BkX/8EhSpYPF950V5JdbezZE1i3l314LlaPbI6xA1MMJNNhWq3i6
 tongai,$2b$12$gSJduk1ZxWxjwfL0Hef9XOXCQ2qmuUYw.Qkd/a98qeP14ilSP4SdS
+fantastic,$2b$12$plsDcaoExwJxGPqdQbd/o.myuF75LC8EWlxOzf35sJ8nH62vKH/XG
