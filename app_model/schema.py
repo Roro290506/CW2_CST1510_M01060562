@@ -12,6 +12,7 @@ def create_user_table():
             cur = conn.cursor()
             sql = '''CREATE TABLE IF NOT EXISTS users(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
                 username TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'user'
@@ -73,3 +74,7 @@ def migrate_it_tickets():
             print("Migration halted because file is missing")
         finally:
             conn.close()
+create_user_table()
+migrate_cyber_incidents()
+migrate_datasets_metadata()
+migrate_it_tickets()
