@@ -15,6 +15,7 @@ if not st.session_state["logged_in"]:
 
 
 st.title("📊 Analytics Dashboard")
+#function to display cyber incidents
 def display_cyber_incidents():
      try:
       data= get_all_cyber_incidents()
@@ -24,6 +25,12 @@ def display_cyber_incidents():
        with st.sidebar:
         st.header("Cyber Incidents Navigation Bar")
         severity_=st.selectbox('Severity Level',data["severity"].unique())
+        colors = {"Low": "🟢 Low",
+                  "Medium": "🟡 Medium",
+                  "High": "🟠 High",
+                  "Critical": "🔴 Critical"
+                 }
+        st.markdown(f"### Current Status: {colors[severity_]}")
        data["timestamp"]=pd.to_datetime(data["timestamp"])
        filtered_data=data[data["severity"]==severity_]
        st.subheader("Cyber Incidents Data Overview")
@@ -48,6 +55,7 @@ def display_cyber_incidents():
        st.dataframe(filtered_data)
      except  Exception : 
         st.error("Database connection failed. Please try again later.")
+#functions to display it tickets
 def display_it_tickets():
      try:
       data=  get_all_it_tickets()
@@ -82,6 +90,7 @@ def display_it_tickets():
        st.dataframe(filtered_data)
      except Exception :
         st.error("Database connection failed. Please try again later.")
+#functions to display metadata
 def display_datasets_metadata():
      try:
       data=get_all_datasets_metadata()
@@ -89,7 +98,7 @@ def display_datasets_metadata():
           st.error("No data available for this section at the moment")
       else:
        st.header("Datasets Metadata Overview")
-       uploaded_by=st.selectbox('uploaded_by',data["uploaded_by"])
+       
        st.subheader("Total Records Uploaded per File  ")
        fig=px.bar(data,
                   x="rows",
@@ -108,7 +117,7 @@ def display_datasets_metadata():
        st.dataframe(data)       
      except Exception:
           st.error("Database connection failed. Please try again later.")
-       
+#fuctioon to display the selected button      
 def dataset_choice():
   default=st.session_state.get("Selected","All")
   if default== "All":
@@ -121,7 +130,8 @@ def dataset_choice():
     display_it_tickets()
   else:
     display_datasets_metadata()
-       
+#calling the function     
 dataset_choice()
+#Button to go to Dashboard
 if st.button("Go To Dashboard",use_container_width=True) :
            st.switch_page("Pages/1_Dashboard.py")

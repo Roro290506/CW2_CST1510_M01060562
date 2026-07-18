@@ -1,6 +1,10 @@
 import pandas as pd
+import streamlit as st
 import sqlite3
 from app_model.db import get_connection
+
+@st.cache_data(ttl=600)
+#function to fetching all cyber incidents 
 def get_all_cyber_incidents():
     conn = get_connection()
     if conn == None :

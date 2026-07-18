@@ -8,6 +8,7 @@ def generate_hash(psw):
 #checking if password == to the hash stored
 def is_valid_hash(psw,hashed):
     try:
+        #checking if its not falsy string
         if not psw or not hashed:
             return False
         hash_=hashed.encode("utf-8")
