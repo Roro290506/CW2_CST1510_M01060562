@@ -1,25 +1,89 @@
 import re
+import datetime
 import sqlite3
 from pathlib import Path
-from hashing import generate_hash,is_valid_hash
+from app_model.hashing import generate_hash,is_valid_hash
 from app_model.db import get_connection
+
+#delete token record because execution is done
+def delete_token(token):
+    #establishing connection to database
+    conn=get_connection()
+    if conn == None :
+        return False
+    else :
+      #execution
+      try:
+        cur=conn.cursor()
+        cur.execute('DELETE FROM password_reset WHERE token = ?', (token,))
+        conn.commit()
+      finally:
+        conn.close()
+
+#delete token record because the time has lapsed
+def delete_record():
+    #establishing connection to database
+    conn=get_connection()
+    if conn == None :
+        print("Connection to database failed")
+    else :
+        #Execution
+        try:
+           cur=conn.cursor()
+           #variable to store current time
+           CURRENT_TIMESTAMP=datetime.datetime.now()
+           cur.execute('DELETE FROM password_reset WHERE expires_at < ?',(CURRENT_TIMESTAMP,))
+           conn.commit()
+           return True
+        except sqlite3.OperationalError:
+            print("Failed to delete")
+        finally:
+           conn.close()
+        
+#Fetch the token record
+def get_token(token):
+    conn=get_connection()
+    if conn==None:
+        print("Connection to database failed")
+    else:
+        cur=conn.cursor()
+        cur.execute("SELECT*FROM password_reset where token=?",(token,))
+        record=cur.fetchone()
+        conn.close()
+        return record
+#inserting tuple into password reset 
+def insert_reset(email,token,time_created,expires_at):
+    conn=get_connection()
+    if conn==None :
+        print("Connenction to db failed")
+    else:
+        cur=conn.cursor()
+        try:
+            sql=('''INSERT INTO password_reset(email,token,time_created,expires_at)VALUES(?,?,?,?)''')
+            cur.execute(sql,(email,token,time_created,expires_at))
+            conn.commit()
+        except sqlite3.Error():
+            print("failed to add")
+        finally:
+            conn.close()     
 #Inserting user details into database
-def add_user (username,password_hash,role="user"):
+def add_user (email,username,password_hash):
     conn=get_connection()
     #conditional statement to check if connection has been established
     if conn == None :
         print("Failed connection with database")
     else :
         cur=conn.cursor()
-        #preventing an error just incase the username is already taken
+        #preventing an error just incase the username or email is already taken
         try:
             #inserting information about new user
-            sql=('''INSERT INTO users(username,password_hash,role) VALUES(?,?,?)''')
-            cur.execute(sql,(username,password_hash,role))
+            sql=('''INSERT INTO users(email,username,password_hash) VALUES(?,?,?)''')
+            cur.execute(sql,(email,username,password_hash))
             conn.commit()
         except sqlite3.IntegrityError:
             print("Username is already taken")
-        conn.close()
+        finally:
+          conn.close()
 #Fetching all users
 def get_all_users():
     conn=get_connection()
@@ -54,40 +118,127 @@ def get_user(username):
             print("User data retrieved")
         conn.close()
         return user
+#Update password
+def update_password(username,newpswhash):
+    conn = get_connection()
+    #checking if connection to database has been established
+    if conn == None :
+        return False
+    else :
+        try:
+            cur=conn.cursor()
+            cur.execute("UPDATE users SET password_hash = ? WHERE username = ?;", (newpswhash, username))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception:
+            conn.close()
+            return False  
+#Update email
+def update_email(username,newemail):
+    conn = get_connection()
+    #checking if connection to database has been established
+    if conn == None :
+        return False
+    else :
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE users SET email = ? WHERE username = ?;", (newemail, username))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception :
+            conn.close()
+            return False    
 #Updating name
 def update_user(old_name, new_name):
     conn = get_connection()
     #checking if connection to database has been established
     if conn == None :
-        print("Failed connection with database")
+        return "Failed to connect to db"
     else :
+       try:
         cur = conn.cursor()
         cur.execute("UPDATE users SET username = ? WHERE username = ?", (new_name, old_name))
         conn.commit()
         #Checking if username actually exist and printing out result
         if cur.rowcount==0 :
-            print("Old Username does not exist in the database no updates were made.")
+            update="Not Updated"
         else :
-            print("The username was succesfully updated.")
+           update="Updated"
         conn.close()
+        return update
+       except sqlite3.IntegrityError: 
+           return "Username exist already"
+           
 #Delete user from database
 def delete_user(username):
     conn=get_connection()
     #checking if connection to database has been established
     if conn == None :
-        print("Failed connection with database")
+        return False
     else :
         cur=conn.cursor()
         cur.execute("DELETE FROM users WHERE username=? ",(username,))
         conn.commit()
         #Checking if username actually exist and printing out result
         if cur.rowcount==0:
-            print("Username does not exist so there was nothing deleted")
+            conn.close()
+            return False
         else :
-            print("Successfully deleted")
-        conn.close()
+            conn.close()
+            return True
+        
 
-#Function to check if username does not exist in the database already
+            
+#checking if password is strong enough
+def check_password_intensity(psw):
+    pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+    #checks if password satdify the conditions of 8characters ,1 uppercase,1lowercase,1special character,1digit
+    if re.match(pattern,psw):
+        return True
+    return False   
+#checking if it is gmail email entered
+def is_gmail(email):
+    #preventing falsy string
+    if not email:
+        return False
+    #putting everything lowercase and deleting empty space
+    email=email.lower().strip()
+    if "@" in email and email.endswith("@gmail.com"):
+        #ensuring there is something before the @gmail.com
+        name=email.split("@")[0]
+        if len(name)>0:
+            return True   
+    return False
+#Function to register users for the database
+def register_user(email,username, psw,confirm):
+    if not is_gmail(email):
+        return"Enter a gmail account"   
+    if not username:
+        return" Enter a username"
+    if get_user(username) is not None:
+        return "Username already exists. Please choose another one."
+    # Check password strength
+    if not check_password_intensity(psw): 
+        return "Weak Password! Please use a stronger one with at least 8 characters with at least 1 digit, 1 uppercase,1lowercase and 1 special character"
+    if psw != confirm :
+        return "Correct your password it does not match"
+    # If passes checks, hash and save
+    hashed = generate_hash(psw)
+    add_user(email,username, hashed)
+    return True
+
+#Function to login
+def login_user(username, psw):
+    user_data = get_user(username)
+    if user_data:
+        id,email, user_name, psw_hash, role = user_data
+        if username == user_name and is_valid_hash(psw, psw_hash):
+            return True
+    return False
+#FLATFILE SYSTEM STORED
+#function to check if there is no similar username 
 def similar_username(username):
     #variable to store boolean value for similarity in usernames
     similar1=False
@@ -111,15 +262,9 @@ def similar_username(username):
      return similar1
     except FileNotFoundError:
         return False
-#checking if password is strong enough
-def check_password_tensity(psw):
-    pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
-    #checks if password satdify the conditios of 8characters ,1 uppercase,1lowercase,1special character
-    if re.match(pattern,psw):
-        return True
-    return False   
-#Function to register users
-def register_user():
+
+#register user for textfile
+def register_user_txt():
     print("Welcome New User!!")
     #Prompting user to enter username
     username=input("Enter a username :").strip()
@@ -135,10 +280,10 @@ def register_user():
             username=input("Enter a username: ").strip()
             similar=similar_username(username)
     while True:
-        psw = input("Create a password with at least 8 characters, 1 special character, 1 lowercase and 1 uppercase: ")
+        psw = input("Create a password with at least 8 characters, 1 digit, 1 special character, 1 lowercase and 1 uppercase: ")
         #checks if password is strong enough
-        while not check_password_tensity(psw):
-            psw = input("Re-enter a password meeting all requirements of 8 characters, 1 special character, 1 lowercase and 1 uppercase : ")
+        while not check_password_intensity(psw):
+            psw = input("Re-enter a password meeting all requirements of 8 characters, 1 special character, 1 lowercase,1 digit and 1 uppercase : ")
         #promting user to confirm their password and checking if it matches
         confirm = input("Confirm your password: ")
         if psw == confirm:
@@ -151,8 +296,9 @@ def register_user():
     with open("DATA/users.txt","a")as f:
         f.write(f"{username},{hashed_psw}\n")
     print("User succesfully registered ! ")
-#Function to login
-def login_user():
+
+#Function to login textfile
+def login_user_txt():
     #Prompting user to enter username and password
     username=input("Enter your username:").strip()
     psw=input("Enter your password: ")
@@ -173,4 +319,7 @@ def login_user():
     except FileNotFoundError: 
         print("File not found")
     return result 
+
+    
+
      

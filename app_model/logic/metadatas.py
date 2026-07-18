@@ -1,6 +1,9 @@
 import pandas as pd
 import sqlite3
+import streamlit as st
 from app_model.db import get_connection
+@st.cache_data(ttl=600)
+#fetching of all datasets metadata
 def get_all_datasets_metadata():
     conn=get_connection()
     if conn == None :

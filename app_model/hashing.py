@@ -7,7 +7,12 @@ def generate_hash(psw):
     return hashed.decode("utf-8")
 #checking if password == to the hash stored
 def is_valid_hash(psw,hashed):
-    hash_=hashed.encode("utf-8")
-    psw_bytes=psw.encode("utf-8")
-    is_valid=bcrypt.checkpw(psw_bytes,hash_)
-    return is_valid
+    try:
+        #checking if its not falsy string
+        if not psw or not hashed:
+            return False
+        hash_=hashed.encode("utf-8")
+        psw_bytes=psw.encode("utf-8")
+        return bcrypt.checkpw(psw_bytes,hash_)
+    except Exception as e:
+        return False
